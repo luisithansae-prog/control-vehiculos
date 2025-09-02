@@ -399,6 +399,20 @@
             background-color: #f44336;
             color: white;
         }
+        
+        .firebase-config {
+            background-color: #e8f5e9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 14px;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .firebase-config h3 {
+            margin-bottom: 10px;
+            color: #2e7d32;
+        }
     </style>
 </head>
 <body>
@@ -413,6 +427,7 @@
 
     <div id="user-info" class="user-info" style="display: none;">
         Conectado como: <span id="current-user"></span>
+        <button class="action-btn btn-danger" style="margin-left: 10px; padding: 3px 8px; font-size: 12px;" onclick="logout()">Salir</button>
     </div>
 
     <div id="connection-status" class="connection-status connected" style="display: none;">
@@ -587,6 +602,12 @@
             </table>
         </div>
         
+        <div class="firebase-config">
+            <h3>✅ Sistema Conectado a Firebase Correctamente</h3>
+            <p>Tu aplicación está conectada a: <strong>https://vehiculos-mantenimiento-7153e-default-rtdb.firebaseio.com/</strong></p>
+            <p>Los datos se guardarán y sincronizarán en tiempo real con todos los usuarios.</p>
+        </div>
+        
         <div class="footer">
             <p>Este documento es parte del sistema de control de flota - Formato ID: F-VH-2023 - Versión: 2.0</p>
         </div>
@@ -595,9 +616,16 @@
     <div id="notification" class="notification"></div>
 
     <script>
-        // Configuración de Firebase con tu URL
+        // Configuración de Firebase con tus credenciales
         const firebaseConfig = {
-            databaseURL: "https://vehiculos-mantenimiento-7153e-default-rtdb.firebaseio.com/"
+            apiKey: "AIzaSyCRq2gMCczYhvcI3voKuURNOyiAE2pIYvM",
+            authDomain: "vehiculos-mantenimiento-7153e.firebaseapp.com",
+            databaseURL: "https://vehiculos-mantenimiento-7153e-default-rtdb.firebaseio.com",
+            projectId: "vehiculos-mantenimiento-7153e",
+            storageBucket: "vehiculos-mantenimiento-7153e.firebasestorage.app",
+            messagingSenderId: "769452489172",
+            appId: "1:769452489172:web:6b8feb1c1b3bb36b7dbe41",
+            measurementId: "G-QB2L9YQFFP"
         };
         
         // Inicializar Firebase
@@ -635,10 +663,28 @@
                 document.getElementById('main-container').style.display = 'block';
                 document.getElementById('connection-status').style.display = 'block';
                 
+                // Guardar usuario en localStorage
+                localStorage.setItem('mantenimientoUser', currentUser);
+                
                 // Inicializar la aplicación después del login
                 inicializarAplicacion();
             } else {
                 alert('Por favor ingresa tu nombre');
+            }
+        }
+
+        // Función de logout
+        function logout() {
+            if (confirm('¿Estás seguro de que deseas salir?')) {
+                currentUser = null;
+                document.getElementById('login-container').style.display = 'flex';
+                document.getElementById('user-info').style.display = 'none';
+                document.getElementById('main-container').style.display = 'none';
+                document.getElementById('connection-status').style.display = 'none';
+                document.getElementById('user-name').value = '';
+                
+                // Eliminar usuario del localStorage
+                localStorage.removeItem('mantenimientoUser');
             }
         }
 
@@ -654,6 +700,10 @@
             
             // Cargar datos iniciales
             cargarDatosFirebase();
+            
+            // Establecer fecha actual por defecto
+            const hoy = new Date().toISOString().split('T')[0];
+            document.getElementById('fecha-control').value = hoy;
         }
 
         // Función para inicializar una tabla
@@ -772,6 +822,7 @@
                 const datos = snapshot.val();
                 if (datos) {
                     aplicarDatosDesdeFirebase(datos);
+                    mostrarNotificacion('Datos actualizados en tiempo real', 'success');
                 }
             });
             
@@ -1019,9 +1070,21 @@
                 }
             }
         });
+
+        // Función para cargar datos (pública)
+        function cargarDatos() {
+            cargarDatosFirebase();
+        }
+
+        // Inicializar la aplicación cuando se carga la página
+        window.onload = function() {
+            // Verificar si ya hay una sesión activa (en localStorage)
+            const savedUser = localStorage.getItem('mantenimientoUser');
+            if (savedUser) {
+                document.getElementById('user-name').value = savedUser;
+                login();
+            }
+        };
     </script>
 </body>
-
 </html>
-
-
