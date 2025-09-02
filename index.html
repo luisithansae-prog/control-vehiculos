@@ -555,16 +555,13 @@
         
         <div class="form-title">REGISTRO DE MANTENIMIENTO DE VEHÍCULOS - 6 SERVICIOS POR VEHÍCULO</div>
         
-        <div class="buttons-container no-print">
-            <button class="action-btn save-btn" onclick="guardarDatos()">Guardar en Nube</button>
-            <button class="action-btn load-btn" onclick="cargarDatos()">Cargar Datos</button>
-            <div class="file-input-container">
-                <button class="action-btn import-btn">Importar desde Excel</button>
-                <input type="file" id="file-input" class="file-input" accept=".xlsx, .xls" onchange="importarExcel(event)">
-            </div>
-            <button class="action-btn excel-btn" onclick="exportarExcel()">Exportar a Excel</button>
-            <button class="action-btn print-btn" onclick="window.print()">Imprimir Formato</button>
-        </div>
+   <div class="buttons-container no-print">
+    <!-- ❌ BOTÓN DE IMPRIMIR ELIMINADO -->
+    <button class="action-btn excel-btn" onclick="exportToExcel()">Exportar a Excel</button>
+    <button class="action-btn save-btn" onclick="saveToFirebase()">Guardar en Firebase</button>
+    <button class="action-btn load-btn" onclick="loadFromFirebase()">Cargar de Firebase</button>
+    <button class="action-btn import-btn" onclick="importFromExcel()">Importar desde Excel</button>
+</div>
         
         <!-- Servicio 1 -->
         <div class="service-container">
@@ -1184,3 +1181,4 @@
     </script>
 </body>
 </html>
+
