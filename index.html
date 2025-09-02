@@ -5,102 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control de Mantenimiento de Vehículos</title>
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <style>
-        /* ---- ESTILOS DE IMPRESIÓN ---- */
-        @media print {
-            @page { size: landscape; margin: 0.5cm; }
-            body, html { width: 27.9cm; height: 21.6cm; margin: 0; padding: 0; }
-            .container { width: 100%; height: 100%; padding: 0.5cm; margin: 0; box-shadow: none; border: none; }
-            .no-print { display: none !important; }
-            .form-title { box-shadow: none; }
-            table { page-break-inside: avoid; }
-        }
-
-        /* ---- ESTILOS GENERALES ---- */
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #f0f3f5; color: #333; line-height: 1.4; padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .container { width: 100%; max-width: 1200px; background: white; padding: 15px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.1); margin: 0 auto; overflow-x: auto; border-radius: 6px; }
-        
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #ffcc00; }
-        .logo-img { width: 180px; height: auto; object-fit: contain; }
-        .company-info { text-align: right; }
-        .company-name { font-size: 18px; font-weight: bold; color: #0066a1; margin-bottom: 5px; }
-
-        .form-title { text-align: center; background-color: #ffcc00; padding: 8px; margin: 15px 0; border-radius: 4px; font-size: 16px; color: #333; }
-        .info-section { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; font-size: 12px; }
-        .info-box { padding: 6px 8px; border: 1px solid #ddd; border-radius: 3px; background-color: #f9f9f9; }
-        .info-label { font-weight: bold; color: #0066a1; }
-
-        table { width: 100%; min-width: 700px; border-collapse: collapse; font-size: 11px; margin-bottom: 20px; }
-        th, td { border: 1px solid #ddd; padding: 5px; text-align: center; vertical-align: middle; }
-        th { background: #ffcc00; font-weight: bold; }
-        .placa-cell, .modelo-cell { background: #f5f5f5; position: sticky; z-index: 10; }
-        .placa-cell { width: 8%; left: 0; font-weight: bold; }
-        .modelo-cell { width: 15%; left: 8%; text-align: left; padding-left: 8px; }
-        .comments-cell { text-align: left; }
-
-        input[type="text"], input[type="date"], input[type="number"], select {
-            border: none; border-bottom: 1px dashed #999; padding: 3px; width: 100%; background: transparent; font-size: 11px; text-align: center;
-        }
-
-        .buttons-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 15px auto; }
-        .action-btn { flex: 1 1 160px; max-width: 200px; padding: 10px; font-size: 14px; border: none; border-radius: 6px; cursor: pointer; color: white; transition: 0.3s; }
-        .action-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
-        .print-btn { background: linear-gradient(to bottom, #0066a1, #004d7a); }
-        .excel-btn { background: linear-gradient(to bottom, #0d8044, #0a6636); }
-        .save-btn { background: linear-gradient(to bottom, #ff9800, #f57c00); }
-        .load-btn { background: linear-gradient(to bottom, #9c27b0, #7b1fa2); }
-        .import-btn { background: linear-gradient(to bottom, #607d8b, #455a64); }
-
-        .service-minor { background: #e6f7ff; }
-        .service-major { background: #fff2e6; }
-
-        .notification { position: fixed; top: 20px; right: 20px; padding: 15px; border-radius: 5px; color: white; font-weight: bold; opacity: 0; transition: opacity 0.5s; z-index: 1000; }
-        .success { background: #4caf50; }
-        .error { background: #f44336; }
-
-        .login-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 10000; }
-        .login-form { background: white; padding: 30px; border-radius: 10px; width: 90%; max-width: 400px; text-align: center; }
-        .login-form h2 { margin-bottom: 15px; color: #0066a1; font-size: 18px; }
-        .login-form input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
-        .login-btn { background: #0066a1; color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; cursor: pointer; }
-
-        .user-info, .connection-status { position: fixed; background: #f5f5f5; border-radius: 5px; font-size: 12px; z-index: 100; }
-        .user-info { top: 10px; right: 10px; padding: 10px; font-size: 14px; }
-        .connection-status { bottom: 10px; right: 10px; padding: 5px 10px; }
-        .connected { background: #4caf50; color: white; }
-        .disconnected { background: #f44336; color: white; }
-
-        .firebase-config { background: #e8f5e9; padding: 15px; border-radius: 8px; margin-top: 20px; font-size: 14px; border-left: 4px solid #4caf50; }
-        .firebase-config h3 { margin-bottom: 10px; color: #2e7d32; }
-
-        /* ---- RESPONSIVE ---- */
-        @media (max-width: 768px) {
-            .header { flex-direction: column; text-align: center; gap: 10px; }
-            .company-info { text-align: center; }
-            .info-section { grid-template-columns: 1fr; }
-            .logo-img { width: 140px; }
-        }
-        @media (max-width: 480px) {
-            body { padding: 5px; }
-            .container { padding: 10px; }
-            .login-form { padding: 20px; }
-            th, td { font-size: 10px; padding: 4px; }
-            .action-btn { flex: 1 1 100%; max-width: 100%; font-size: 13px; padding: 8px; }
-        }
-    </style>
-</head>
-<body>
- 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Mantenimiento de Vehículos</title>
-    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <!-- Firebase App (el core de Firebase) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <!-- Firebase Database -->
@@ -555,7 +459,7 @@
         
         <div class="form-title">REGISTRO DE MANTENIMIENTO DE VEHÍCULOS - 6 SERVICIOS POR VEHÍCULO</div>
         
-          <div class="buttons-container no-print">
+        <div class="buttons-container no-print">
             <button class="action-btn save-btn" onclick="guardarDatos()">Guardar en Nube</button>
             <button class="action-btn load-btn" onclick="cargarDatos()">Cargar Datos</button>
             <div class="file-input-container">
@@ -1184,5 +1088,3 @@
     </script>
 </body>
 </html>
-
-
