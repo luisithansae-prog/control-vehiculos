@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control de Mantenimiento de Vehículos</title>
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <!-- Firebase App (el core de Firebase) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <!-- Firebase Database -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
         @media print {
             @page {
@@ -319,16 +323,109 @@
             height: 100%;
             cursor: pointer;
         }
+        
+        .login-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+        
+        .login-form {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 400px;
+            text-align: center;
+        }
+        
+        .login-form h2 {
+            margin-bottom: 20px;
+            color: #0066a1;
+        }
+        
+        .login-form input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .login-btn {
+            background: #0066a1;
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        .user-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 100;
+        }
+        
+        .connection-status {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 100;
+        }
+        
+        .connected {
+            background-color: #4caf50;
+            color: white;
+        }
+        
+        .disconnected {
+            background-color: #f44336;
+            color: white;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div id="login-container" class="login-container">
+        <div class="login-form">
+            <h2>Control de Mantenimiento de Vehículos</h2>
+            <p>Ingresa tu nombre para comenzar</p>
+            <input type="text" id="user-name" placeholder="Tu nombre">
+            <button class="login-btn" onclick="login()">Ingresar</button>
+        </div>
+    </div>
+
+    <div id="user-info" class="user-info" style="display: none;">
+        Conectado como: <span id="current-user"></span>
+    </div>
+
+    <div id="connection-status" class="connection-status connected" style="display: none;">
+        Conectado
+    </div>
+
+    <div class="container" style="display: none;" id="main-container">
         <div class="header">
             <div class="logo-container">
-                <img src="https://cdn.imweb.me/upload/S202402132ab908c48484a/ad9072e67d6f0.png" alt="Logo de la empresa" class="logo-img">
+                <img src="https://cdn.logo.com/hotlink-ok/logo-social.png" alt="Logo de la empresa" class="logo-img">
             </div>
             <div class="company-info">
-                <div class="company-name">Hansae GSN S.A.</div>
+                <div class="company-name">EMPRESA EJEMPLO S.A.</div>
                 <p>Control de Mantenimiento de Vehículos - 6 Servicios</p>
             </div>
         </div>
@@ -348,7 +445,7 @@
         <div class="form-title">REGISTRO DE MANTENIMIENTO DE VEHÍCULOS - 6 SERVICIOS POR VEHÍCULO</div>
         
         <div class="buttons-container no-print">
-            <button class="action-btn save-btn" onclick="guardarDatos()">Guardar Datos</button>
+            <button class="action-btn save-btn" onclick="guardarDatos()">Guardar en Nube</button>
             <button class="action-btn load-btn" onclick="cargarDatos()">Cargar Datos</button>
             <div class="file-input-container">
                 <button class="action-btn import-btn">Importar desde Excel</button>
@@ -498,6 +595,15 @@
     <div id="notification" class="notification"></div>
 
     <script>
+        // Configuración de Firebase con tu URL
+        const firebaseConfig = {
+            databaseURL: "https://vehiculos-mantenimiento-7153e-default-rtdb.firebaseio.com/"
+        };
+        
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
         // Datos de los vehículos
         const vehiculos = [
             {placa: "856KRT", modelo: "HYUNDAI STARIA 2024"},
@@ -516,13 +622,39 @@
             {placa: "C833BZT", modelo: "HYUNDAI STARIA 2025"}
         ];
 
-        // Inicializar las tablas
-        document.addEventListener('DOMContentLoaded', function() {
+        let currentUser = null;
+
+        // Función de login
+        function login() {
+            const userName = document.getElementById('user-name').value.trim();
+            if (userName) {
+                currentUser = userName;
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('user-info').style.display = 'block';
+                document.getElementById('current-user').textContent = currentUser;
+                document.getElementById('main-container').style.display = 'block';
+                document.getElementById('connection-status').style.display = 'block';
+                
+                // Inicializar la aplicación después del login
+                inicializarAplicacion();
+            } else {
+                alert('Por favor ingresa tu nombre');
+            }
+        }
+
+        // Inicializar la aplicación
+        function inicializarAplicacion() {
+            // Inicializar las tablas
             for (let i = 1; i <= 6; i++) {
                 inicializarTabla('servicio' + i);
             }
-            cargarDatos(); // Intentar cargar datos guardados al iniciar
-        });
+            
+            // Configurar listeners para cambios en tiempo real
+            configurarListenersTiempoReal();
+            
+            // Cargar datos iniciales
+            cargarDatosFirebase();
+        }
 
         // Función para inicializar una tabla
         function inicializarTabla(idTabla) {
@@ -536,7 +668,7 @@
                     <td class="placa-cell">${vehiculo.placa}</td>
                     <td class="modelo-cell">${vehiculo.modelo}</td>
                     <td class="service-cell">
-                        <select name="tipo">
+                        <select name="tipo" onchange="actualizarColorFila(this)">
                             <option value="">Seleccionar</option>
                             <option value="minor">Menor</option>
                             <option value="major">Mayor</option>
@@ -552,13 +684,34 @@
             });
         }
 
-        // Función para guardar datos en localStorage
+        // Función para actualizar el color de la fila según el tipo de servicio
+        function actualizarColorFila(selectElement) {
+            const row = selectElement.closest('tr');
+            if (selectElement.value === 'minor') {
+                row.classList.add('service-minor');
+                row.classList.remove('service-major');
+            } else if (selectElement.value === 'major') {
+                row.classList.add('service-major');
+                row.classList.remove('service-minor');
+            } else {
+                row.classList.remove('service-minor', 'service-major');
+            }
+            
+            // Guardar automáticamente después de un cambio
+            guardarDatos();
+        }
+
+        // Función para guardar datos en Firebase
         function guardarDatos() {
             try {
                 const datos = {
                     fecha: document.getElementById('fecha-control').value,
                     responsable: document.getElementById('responsable').value,
-                    servicios: {}
+                    servicios: {},
+                    ultimaActualizacion: {
+                        usuario: currentUser,
+                        fecha: new Date().toISOString()
+                    }
                 };
                 
                 for (let i = 1; i <= 6; i++) {
@@ -582,61 +735,95 @@
                     });
                 }
                 
-                localStorage.setItem('mantenimientoVehiculos', JSON.stringify(datos));
-                mostrarNotificacion('Datos guardados correctamente', 'success');
+                // Guardar en Firebase
+                database.ref('mantenimientoVehiculos').set(datos)
+                    .then(() => {
+                        mostrarNotificacion('Datos guardados en la nube', 'success');
+                    })
+                    .catch((error) => {
+                        mostrarNotificacion('Error al guardar: ' + error.message, 'error');
+                    });
+                    
             } catch (error) {
                 mostrarNotificacion('Error al guardar los datos: ' + error.message, 'error');
             }
         }
 
-        // Función para cargar datos desde localStorage
-        function cargarDatos() {
-            try {
-                const datosGuardados = localStorage.getItem('mantenimientoVehiculos');
-                if (!datosGuardados) {
-                    mostrarNotificacion('No hay datos guardados', 'error');
-                    return;
-                }
-                
-                const datos = JSON.parse(datosGuardados);
-                
-                document.getElementById('fecha-control').value = datos.fecha || '';
-                document.getElementById('responsable').value = datos.responsable || '';
-                
-                for (let i = 1; i <= 6; i++) {
-                    const servicioId = 'servicio' + i;
-                    if (datos.servicios && datos.servicios[servicioId]) {
-                        const tabla = document.getElementById(servicioId);
-                        const filas = tabla.querySelectorAll('tbody tr');
-                        
-                        datos.servicios[servicioId].forEach((dato, index) => {
-                            if (filas[index]) {
-                                filas[index].querySelector('[name="tipo"]').value = dato.tipo || '';
-                                filas[index].querySelector('[name="fecha"]').value = dato.fecha || '';
-                                filas[index].querySelector('[name="proximo"]').value = dato.proximo || '';
-                                filas[index].querySelector('[name="taller"]').value = dato.taller || '';
-                                filas[index].querySelector('[name="costo"]').value = dato.costo || '';
-                                filas[index].querySelector('[name="comentarios"]').value = dato.comentarios || '';
-                                
-                                // Aplicar color según tipo de servicio
-                                const row = filas[index];
-                                if (dato.tipo === 'minor') {
-                                    row.classList.add('service-minor');
-                                    row.classList.remove('service-major');
-                                } else if (dato.tipo === 'major') {
-                                    row.classList.add('service-major');
-                                    row.classList.remove('service-minor');
-                                } else {
-                                    row.classList.remove('service-minor', 'service-major');
-                                }
-                            }
-                        });
+        // Función para cargar datos desde Firebase
+        function cargarDatosFirebase() {
+            database.ref('mantenimientoVehiculos').once('value')
+                .then((snapshot) => {
+                    const datos = snapshot.val();
+                    if (datos) {
+                        aplicarDatosDesdeFirebase(datos);
+                        mostrarNotificacion('Datos cargados desde la nube', 'success');
+                    } else {
+                        mostrarNotificacion('No hay datos en la nube. Puedes comenzar a agregar información.', 'error');
                     }
+                })
+                .catch((error) => {
+                    mostrarNotificacion('Error al cargar: ' + error.message, 'error');
+                });
+        }
+
+        // Configurar listeners para cambios en tiempo real
+        function configurarListenersTiempoReal() {
+            database.ref('mantenimientoVehiculos').on('value', (snapshot) => {
+                const datos = snapshot.val();
+                if (datos) {
+                    aplicarDatosDesdeFirebase(datos);
                 }
+            });
+            
+            // Monitorizar estado de conexión
+            database.ref('.info/connected').on('value', (snapshot) => {
+                const connected = snapshot.val();
+                const statusElement = document.getElementById('connection-status');
                 
-                mostrarNotificacion('Datos cargados correctamente', 'success');
-            } catch (error) {
-                mostrarNotificacion('Error al cargar los datos: ' + error.message, 'error');
+                if (connected) {
+                    statusElement.textContent = 'Conectado';
+                    statusElement.className = 'connection-status connected';
+                } else {
+                    statusElement.textContent = 'Desconectado';
+                    statusElement.className = 'connection-status disconnected';
+                }
+            });
+        }
+
+        // Aplicar datos desde Firebase al formulario
+        function aplicarDatosDesdeFirebase(datos) {
+            document.getElementById('fecha-control').value = datos.fecha || '';
+            document.getElementById('responsable').value = datos.responsable || '';
+            
+            for (let i = 1; i <= 6; i++) {
+                const servicioId = 'servicio' + i;
+                if (datos.servicios && datos.servicios[servicioId]) {
+                    const tabla = document.getElementById(servicioId);
+                    const filas = tabla.querySelectorAll('tbody tr');
+                    
+                    datos.servicios[servicioId].forEach((dato, index) => {
+                        if (filas[index]) {
+                            filas[index].querySelector('[name="tipo"]').value = dato.tipo || '';
+                            filas[index].querySelector('[name="fecha"]').value = dato.fecha || '';
+                            filas[index].querySelector('[name="proximo"]').value = dato.proximo || '';
+                            filas[index].querySelector('[name="taller"]').value = dato.taller || '';
+                            filas[index].querySelector('[name="costo"]').value = dato.costo || '';
+                            filas[index].querySelector('[name="comentarios"]').value = dato.comentarios || '';
+                            
+                            // Aplicar color según tipo de servicio
+                            const row = filas[index];
+                            if (dato.tipo === 'minor') {
+                                row.classList.add('service-minor');
+                                row.classList.remove('service-major');
+                            } else if (dato.tipo === 'major') {
+                                row.classList.add('service-major');
+                                row.classList.remove('service-minor');
+                            } else {
+                                row.classList.remove('service-minor', 'service-major');
+                            }
+                        }
+                    });
+                }
             }
         }
 
@@ -650,9 +837,6 @@
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-                    
-                    // Limpiar todos los campos primero
-                    limpiarFormulario();
                     
                     // Procesar cada hoja del Excel
                     for (let i = 1; i <= 6; i++) {
@@ -720,6 +904,9 @@
                     
                     mostrarNotificacion('Datos importados desde Excel correctamente', 'success');
                     
+                    // Guardar en Firebase después de importar
+                    guardarDatos();
+                    
                     // Limpiar el input de archivo
                     event.target.value = '';
                     
@@ -752,27 +939,6 @@
             }
             
             return '';
-        }
-
-        // Función para limpiar el formulario
-        function limpiarFormulario() {
-            document.getElementById('fecha-control').value = '';
-            document.getElementById('responsable').value = '';
-            
-            for (let i = 1; i <= 6; i++) {
-                const tabla = document.getElementById(`servicio${i}`);
-                const filas = tabla.querySelectorAll('tbody tr');
-                
-                filas.forEach(fila => {
-                    fila.querySelector('[name="tipo"]').value = '';
-                    fila.querySelector('[name="fecha"]').value = '';
-                    fila.querySelector('[name="proximo"]').value = '';
-                    fila.querySelector('[name="taller"]').value = '';
-                    fila.querySelector('[name="costo"]').value = '';
-                    fila.querySelector('[name="comentarios"]').value = '';
-                    fila.classList.remove('service-minor', 'service-major');
-                });
-            }
         }
 
         // Función para exportar a Excel
@@ -855,4 +1021,5 @@
         });
     </script>
 </body>
+
 </html>
